@@ -1,0 +1,29 @@
+{
+    "name": "fpnn/php-sdk",
+    "type": "library",
+    "description": "php-sdk for FPNN framework",
+    "keywords": ["fpnn"],
+    "homepage": "https://bitbucket.org/funplus/infra-fpnn-sdk",
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "jianjun.zhao",
+            "email": "jianjun.zhao@funplus.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0",
+		"simplito/elliptic-php": "=1.0.1"
+    },
+    "autoload": {
+        "psr-0": {
+            "Fpnn": "src/"
+        }
+    },
+    "repositories": {
+        "packagist": {
+            "type": "composer",
+            "url": "https://packagist.phpcomposer.com"
+        }
+    }
+}
