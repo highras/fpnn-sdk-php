@@ -1,5 +1,5 @@
 {
-    "name": "fpnn/php-sdk",
+    "name": "highras/fpnn",
     "type": "library",
     "description": "php-sdk for FPNN framework",
     "keywords": ["fpnn"],
@@ -16,8 +16,8 @@
 		"simplito/elliptic-php": "=1.0.1"
     },
     "autoload": {
-        "psr-0": {
-            "Fpnn": "src/"
+        "psr-4": {
+            "highras\\fpnn\\": "src/"
         }
     },
     "repositories": {

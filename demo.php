@@ -2,7 +2,7 @@
 
 require_once "./vendor/autoload.php";
 
-use Fpnn\TCPClient;
+use highras\fpnn\TCPClient;
 
 $client = new TCPClient("localhost", 13099);
 
