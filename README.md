@@ -12,20 +12,25 @@
 
 ## Installations
 
-#### 1. Download and prepare library
+The preferred way to install this sdk is through [composer](http://getcomposer.org/download/).
 
-```sh
-# git clone https://bitbucket.org/funplus/infra-fpnn-sdk
-# cd php 
-# composer install # maybe it should be composer.phar in your system, see https://getcomposer.org/
+> Note: Check the [composer.json](https://github.com/highras/fpnn-sdk-php/blob/master/composer.json) for this SDK's requirements and dependencies. 
+Read this [web tip /wiki](http://webtips.krajee.com/setting-composer-minimum-stability-application/) on setting the `minimum-stability` settings for your application's composer.json.
+
+Either run
+
+```
+$ php composer.phar require highras/fpnn "dev-master"
 ```
 
-#### 2. Include autoload files in project
+or add
 
-```php
-<?php
-require_once './path-to-sdk/vendor/autoload.php';
 ```
+"highras/fpnn": "dev-master"
+```
+
+to the ```require``` section of your `composer.json` file.
+
 
 ## Usage
 
