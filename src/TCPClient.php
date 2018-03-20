@@ -48,7 +48,7 @@ class TCPClient
     {
         $this->ip = $ip;
         $this->port = $port;
-        $this->timeout = array('sec' => floor($timeout / 1000), 'usec' => ($timeout % 1000) * 1000);
+        $this->timeout = $timeout;
         $this->socket = null;
         $this->isEncryptor = false;
         $this->canEncryptor = true;
@@ -63,8 +63,8 @@ class TCPClient
 
     function __destruct()
     {
-        if (!is_null($this->socket))
-            socket_close($this->socket);
+        if (!is_null($this->socket) && !is_bool($this->socket))
+            fclose($this->socket);
     }
 
     private function encrypt($buf, $isEncrypt)
@@ -120,34 +120,19 @@ class TCPClient
 
     private function reconnectServer()
     {
-        $this->socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
-        if ($this->socket === false) {
-            throw new \Exception(socket_strerror(socket_last_error()), socket_last_error());
+        $this->socket =  @stream_socket_client("tcp://{$this->ip}:{$this->port}", $errno, $errstr, $this->timeout / 1000); 
+        if (!$this->socket) {
+            $errors = error_get_last();
+            throw new \Exception($errors['message']);
         }
-        if (false === socket_set_option($this->socket, SOL_SOCKET, SO_RCVTIMEO, $this->timeout))
-            throw new \Exception(socket_strerror(socket_last_error()), socket_last_error());
-        if (false === socket_set_option($this->socket, SOL_SOCKET, SO_SNDTIMEO, $this->timeout))
-            throw new \Exception(socket_strerror(socket_last_error()), socket_last_error());
-        if (@socket_connect($this->socket, $this->ip, $this->port) === false)
-            throw new \Exception(socket_strerror(socket_last_error()), socket_last_error());
+         stream_set_timeout($this->socket, $this->timeout / 1000);
     }
 
     private function readBytes($len)
     {
-        $nbytes = 0;
-        $buf = "";
-        for ($i = 0; $i < FPNN_SOCKET_READ_RETRY; $i++) {
-            if (false === ($nbytes = socket_recv($this->socket, $buf, $len, MSG_WAITALL))) {
-                $errno = socket_last_error();
-                if ($errno == SOCKET_EINTR || $errno == SOCKET_EAGAIN)
-                    continue;
-                else
-                    throw new \Exception(socket_strerror($errno), $errno);
-            } else break;
-        }
-        if ($nbytes < $len) {
-            throw new \Exception("socke_recv timeout", FPNN_PHP_TIMEOUT_ERROR);
-        }
+        $buf = @fread($this->socket, $len);
+        if (!$buf)
+            throw new \Exception("read bytes error");
         return $buf;
     }
 
@@ -167,7 +152,7 @@ class TCPClient
         $length = strlen($st);
 
         while ($length > 0) {
-            $sent = socket_write($this->socket, $st, $length);
+            $sent = @fwrite($this->socket, $st, $length);
             if ($sent === false) {
                 throw new \Exception(socket_strerror(socket_last_error()), socket_last_error());
             }
