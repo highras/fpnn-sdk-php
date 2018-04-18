@@ -130,11 +130,15 @@ class TCPClient
 
     private function readBytes($len)
     {
-        $buf = @fread($this->socket, $len);
-        if (!$buf)
-            throw new \Exception("read bytes error");
+        $buf = "";
+        while (strlen($buf) < $len) {
+            $read = @fread($this->socket, $len - strlen($buf));
+            if (!$read)
+                throw new \Exception("read bytes error");
+            $buf .= $read;
+        }
         return $buf;
-    }
+    } 
 
     public function sendQuest($method, array $params, $oneway = false)
     {
