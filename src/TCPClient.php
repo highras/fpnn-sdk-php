@@ -133,7 +133,7 @@ class TCPClient
         $buf = "";
         while (strlen($buf) < $len) {
             $read = @fread($this->socket, $len - strlen($buf));
-            if (!$read)
+            if ($read === false)
                 throw new \Exception("read bytes error");
             $buf .= $read;
         }
