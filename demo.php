@@ -15,11 +15,10 @@ while (true) {
 	    $answer = $client->sendQuest("two", array("a"=>1, "b"=>"bbb"));
 	    var_dump($answer);
 	} catch(\Exception $e) {
+	    echo "exception:\n";
 	    echo $e->getMessage();
 	    echo "\n";
 	    echo $e->getCode();
-	    echo "\n";
-	    print_r($e->exPayload);
 	}
 	sleep(1);
 }
