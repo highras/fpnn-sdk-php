@@ -198,13 +198,17 @@ class TCPClient
         else
             $payload = $this->readBytes($arr["psize"]);
 
-        $anwser = msgpack_unpack($payload);
-        if ($anwser == NULL)
+        $answer = msgpack_unpack($payload);
+        if ($answer == NULL)
             throw new \Exception("msgpack unpack error while unpack data: " . $payload, FPNN_PHP_MSGPACK_UNPACK_ERROR);
         if ($arr["ss"]) {
-            $e = new \Exception($anwser["ex"], $anwser["code"]);
+            $e = new \Exception($answer["ex"], $answer["code"]);
             throw $e;
         }
-        return $anwser;
+
+        if (is_object($answer))
+            $answer = (array)$answer;
+
+        return $answer;
     }
 }
