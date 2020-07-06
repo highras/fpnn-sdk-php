@@ -4,6 +4,8 @@ namespace highras\fpnn;
 
 use Elliptic\EC;
 
+define("FPNN_SDK_VERSION", "1.0.1");
+
 define('FPNN_SOCKET_READ_RETRY', 10);
 
 // flag constants
