@@ -4,7 +4,7 @@ namespace highras\fpnn;
 
 use Elliptic\EC;
 
-define("FPNN_SDK_VERSION", "1.0.1");
+define("FPNN_SDK_VERSION", "1.0.2");
 
 define('FPNN_SOCKET_READ_RETRY', 10);
 
@@ -120,6 +120,10 @@ class TCPClient
         }
     }
 
+    public function reconnect() {
+        $this->reconnectServer();
+    }
+
     private function reconnectServer()
     {
         $this->socket =  @stream_socket_client("tcp://{$this->ip}:{$this->port}", $errno, $errstr, $this->timeout / 1000); 
@@ -133,14 +137,17 @@ class TCPClient
     private function readBytes($len)
     {
         $buf = "";
+        $i = 0;
         while (strlen($buf) < $len) {
             $read = @fread($this->socket, $len - strlen($buf));
             if ($read === false)
-                throw new \Exception("read bytes error");
+                throw new \Exception("read bytes error", 20001);
+            if (strlen($read) == 0 && $i++ > 10)
+                throw new \Exception("read empty bytes", 20001);
             $buf .= $read;
         }
         return $buf;
-    } 
+    }
 
     public function sendQuest($method, array $params, $oneway = false)
     {
