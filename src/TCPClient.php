@@ -4,7 +4,7 @@ namespace highras\fpnn;
 
 use Elliptic\EC;
 
-define("FPNN_SDK_VERSION", "1.0.2");
+define("FPNN_SDK_VERSION", "1.0.4");
 
 define('FPNN_SOCKET_READ_RETRY', 10);
 
