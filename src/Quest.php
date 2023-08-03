@@ -9,6 +9,7 @@ class Quest
     private $cTime;           // int64_t
     private $seqNum;         // uint32_t
     private $payload;        // binary data
+    private $method;         // method name
 
     public function __construct($method, array $params, $oneway = false)
     {
