@@ -6,8 +6,9 @@ use highras\fpnn\TCPClient;
 
 $client = new TCPClient("localhost", 13099);
 
-$peerPubKeyData = file_get_contents('./server-public.key');
-$client->enableEncryptor($peerPubKeyData);
+// 不启用加密链接时无需设置
+//$peerPubKeyData = file_get_contents('./server-public.key');
+//$client->enableEncryptor($peerPubKeyData);
 //$client->enableEncryptor($peerPubKeyData, 'secp256r1', 256);
 
 while (true) {

@@ -4,7 +4,7 @@ namespace highras\fpnn;
 
 use Elliptic\EC;
 
-define("FPNN_SDK_VERSION", "1.0.4");
+define("FPNN_SDK_VERSION", "1.0.5");
 
 define('FPNN_SOCKET_READ_RETRY', 10);
 
@@ -39,6 +39,7 @@ class TCPClient
     private $ip;
     private $port;
     private $timeout;
+    private $autoReconnect;
 
     private $isEncryptor;
     private $canEncryptor;
@@ -46,7 +47,9 @@ class TCPClient
     private $iv;
     private $strength;
 
-    function __construct($ip, $port, $timeout = 5000) // timeout in milliseconds
+    private $retryTimes = 0;
+
+    function __construct($ip, $port, $timeout = 5000, $autoReconnect = true) // timeout in milliseconds
     {
         $this->ip = $ip;
         $this->port = $port;
@@ -54,6 +57,8 @@ class TCPClient
         $this->socket = null;
         $this->isEncryptor = false;
         $this->canEncryptor = true;
+        $this->autoReconnect = $autoReconnect;
+        
         $hasMsgpack = function_exists("msgpack_pack") && function_exists("msgpack_unpack");       // test msgpack api available
         if ($hasMsgpack) {
             $version = phpversion("msgpack");
@@ -126,10 +131,12 @@ class TCPClient
 
     private function reconnectServer()
     {
-        $this->socket =  @stream_socket_client("tcp://{$this->ip}:{$this->port}", $errno, $errstr, $this->timeout / 1000); 
+        if (!is_null($this->socket) && !is_bool($this->socket))
+            fclose($this->socket);
+
+        $this->socket = @stream_socket_client("tcp://{$this->ip}:{$this->port}", $errno, $errstr, $this->timeout / 1000); 
         if (!$this->socket) {
-            $errors = error_get_last();
-            throw new \Exception($errors['message']);
+            throw new \Exception("connect error");
         }
          stream_set_timeout($this->socket, $this->timeout / 1000);
     }
@@ -142,7 +149,7 @@ class TCPClient
             $read = @fread($this->socket, $len - strlen($buf));
             if ($read === false)
                 throw new \Exception("read bytes error", 20001);
-            if (strlen($read) == 0 && $i++ > 10)
+            if (strlen($read) == 0 && $i++ > FPNN_SOCKET_READ_RETRY)
                 throw new \Exception("read empty bytes", 20001);
             $buf .= $read;
         }
@@ -153,7 +160,7 @@ class TCPClient
     {
         $quest = new Quest($method, $params, $oneway);
 
-        if (is_null($this->socket))
+        if (is_null($this->socket) || is_bool($this->socket))
             $this->reconnectServer();
 
         $st = $quest->raw();
@@ -167,7 +174,15 @@ class TCPClient
         while ($length > 0) {
             $sent = @fwrite($this->socket, $st, $length);
             if ($sent === false) {
-                throw new \Exception(socket_strerror(socket_last_error()), socket_last_error());
+                if ($this->autoReconnect && $this->retryTimes < FPNN_SOCKET_READ_RETRY) {
+                    ++$this->retryTimes;
+                    $this->reconnectServer();
+                    $length = strlen($st);
+                    continue;
+                } else {
+                    $this->retryTimes = 0;
+                    throw new \Exception(socket_strerror(socket_last_error()), socket_last_error());
+                }
             }
             if ($sent < $length) {
                 // If not sent the entire message.
@@ -185,16 +200,29 @@ class TCPClient
         // read server response
 
         $arr = array();
-        if ($this->isEncryptor) {
-            $buf = $this->readBytes(4);
-            $arr = unpack("Vlen", $buf);
-            $buf = $this->readBytes($arr['len']);
-            $buf = $this->encrypt($buf, false);
-            $arr = unpack("A4magic/Cversion/Cflag/Cmtype/Css/Vpsize/VseqNum/A*payload", $buf);
-        } else {
-            $buf = $this->readBytes(16); // header size + sequence number
-            $arr = unpack("A4magic/Cversion/Cflag/Cmtype/Css/Vpsize/VseqNum", $buf);
+
+        try {
+            if ($this->isEncryptor) {
+                $buf = $this->readBytes(4);
+                $arr = unpack("Vlen", $buf);
+                $buf = $this->readBytes($arr['len']);
+                $buf = $this->encrypt($buf, false);
+                $arr = unpack("A4magic/Cversion/Cflag/Cmtype/Css/Vpsize/VseqNum/A*payload", $buf);
+            } else {
+                $buf = $this->readBytes(16); // header size + sequence number
+                $arr = unpack("A4magic/Cversion/Cflag/Cmtype/Css/Vpsize/VseqNum", $buf);
+            }
+        } catch (\Exception $e) {
+            if ($this->autoReconnect && $this->retryTimes < FPNN_SOCKET_READ_RETRY) {
+                ++$this->retryTimes;
+                $this->reconnectServer();
+                return $this->sendQuest($method, $params, $oneway);
+            } else {
+                throw $e;
+            }
         }
+
+        $this->retryTimes = 0;
 
         if ($arr["seqNum"] != $quest->getSeqNum()) {
             throw new \Exception("Server returned unmatched seqNum, quest seqNum: "
